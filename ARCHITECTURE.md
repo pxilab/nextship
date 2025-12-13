@@ -519,7 +519,7 @@ pm2 startup
 
 ### Phase 3: Publish
 - [x] TypeScript build setup (tsup)
-- [ ] GitHub Packages publish workflow
+- [x] GitHub Packages publish workflow
 - [x] README & documentation
 
 ### Phase 4: Extras
