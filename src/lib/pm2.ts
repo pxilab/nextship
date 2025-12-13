@@ -63,10 +63,9 @@ export async function reloadApp(
     let command: string;
 
     if (appExists) {
-      // Reload or restart command
+      // Reload or restart command - always use appName since app is already configured
       const action = reload ? "reload" : "restart";
-      const target = ecosystemFile || appName;
-      command = `pm2 ${action} ${target} --update-env`;
+      command = `pm2 ${action} ${appName} --update-env`;
     } else {
       // App doesn't exist, start it
       if (!remotePath) {
