@@ -154,6 +154,25 @@ async function upload(config: Config): Promise<void> {
 - Compression
 - --delete removes old files
 
+### Platform Support
+
+| Target Platform | Transfer Method | Speed |
+|-----------------|-----------------|-------|
+| Linux/macOS | rsync | ✅ Fast (delta transfer) |
+| Windows + WSL | rsync via WSL | ✅ Fast (delta transfer) |
+| Windows (no rsync) | SFTP fallback | ⚠️ Slower (full file transfer) |
+
+**Windows Server Note:**
+For optimal performance on Windows targets, WSL + rsync is **recommended**:
+
+```powershell
+# Install WSL and rsync on Windows Server
+wsl --install -d Ubuntu
+wsl sudo apt update && sudo apt install rsync -y
+```
+
+Without rsync, the tool will automatically fall back to SFTP which works but transfers entire files instead of just changes.
+
 ### Step 3: PM2 Restart
 ```typescript
 // commands/restart.ts

@@ -1,0 +1,185 @@
+import { createSSHConnection, type SSHConnection } from "./ssh.js";
+import type { SSHConfig, PM2Config } from "../config/schema.js";
+
+export interface PM2Result {
+  success: boolean;
+  status?: string;
+  error?: string;
+}
+
+/**
+ * PM2 uygulamasını yeniden yükle
+ */
+export async function reloadApp(
+  sshConfig: SSHConfig,
+  pm2Config: PM2Config
+): Promise<PM2Result> {
+  const { appName, ecosystem, reload } = pm2Config;
+  let conn: SSHConnection | null = null;
+
+  try {
+    conn = await createSSHConnection(sshConfig);
+
+    // Reload veya restart komutu
+    const action = reload ? "reload" : "restart";
+    const target = ecosystem || appName;
+    const command = `pm2 ${action} ${target} --update-env`;
+
+    const result = await conn.exec(command);
+
+    if (result.code !== 0) {
+      return {
+        success: false,
+        error: result.stderr || `PM2 ${action} failed with code ${result.code}`,
+      };
+    }
+
+    return {
+      success: true,
+      status: `PM2 ${action} completed successfully`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    conn?.close();
+  }
+}
+
+/**
+ * PM2 uygulama durumunu kontrol et
+ */
+export async function getAppStatus(
+  sshConfig: SSHConfig,
+  appName: string
+): Promise<PM2Result> {
+  let conn: SSHConnection | null = null;
+
+  try {
+    conn = await createSSHConnection(sshConfig);
+
+    const result = await conn.exec(`pm2 jlist`);
+
+    if (result.code !== 0) {
+      return {
+        success: false,
+        error: result.stderr || "Failed to get PM2 status",
+      };
+    }
+
+    try {
+      const apps = JSON.parse(result.stdout) as Array<{
+        name: string;
+        pm2_env: { status: string };
+      }>;
+      const app = apps.find((a) => a.name === appName);
+
+      if (!app) {
+        return {
+          success: false,
+          error: `App "${appName}" not found in PM2`,
+        };
+      }
+
+      return {
+        success: true,
+        status: app.pm2_env.status,
+      };
+    } catch {
+      return {
+        success: false,
+        error: "Failed to parse PM2 output",
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    conn?.close();
+  }
+}
+
+/**
+ * PM2 uygulamasının çalışır durumda olduğunu doğrula
+ */
+export async function verifyAppRunning(
+  sshConfig: SSHConfig,
+  appName: string,
+  retries: number = 3,
+  delayMs: number = 2000
+): Promise<PM2Result> {
+  for (let i = 0; i < retries; i++) {
+    const status = await getAppStatus(sshConfig, appName);
+
+    if (status.success && status.status === "online") {
+      return {
+        success: true,
+        status: "Application is running",
+      };
+    }
+
+    // Son deneme değilse bekle
+    if (i < retries - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return {
+    success: false,
+    error: `Application did not start within ${retries} retries`,
+  };
+}
+
+/**
+ * PM2 uygulamasını başlat (ilk deploy için)
+ */
+export async function startApp(
+  sshConfig: SSHConfig,
+  pm2Config: PM2Config,
+  cwd: string
+): Promise<PM2Result> {
+  const { appName, ecosystem } = pm2Config;
+  let conn: SSHConnection | null = null;
+
+  try {
+    conn = await createSSHConnection(sshConfig);
+
+    let command: string;
+
+    if (ecosystem) {
+      // Ecosystem dosyası ile başlat
+      command = `cd ${cwd} && pm2 start ${ecosystem}`;
+    } else {
+      // Standalone server ile başlat
+      command = `cd ${cwd} && pm2 start .next/standalone/server.js --name ${appName}`;
+    }
+
+    const result = await conn.exec(command);
+
+    if (result.code !== 0) {
+      return {
+        success: false,
+        error: result.stderr || `PM2 start failed with code ${result.code}`,
+      };
+    }
+
+    // PM2 save ile kalıcı yap
+    await conn.exec("pm2 save");
+
+    return {
+      success: true,
+      status: "PM2 app started successfully",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    conn?.close();
+  }
+}
