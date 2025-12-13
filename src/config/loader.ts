@@ -5,8 +5,24 @@ import { pathToFileURL } from "node:url";
 import { config as loadEnv } from "dotenv";
 import { configSchema, type Config, type PartialConfig } from "./schema.js";
 
-// Load .env file
-loadEnv();
+/**
+ * Load environment files in order (later files override earlier ones):
+ * 1. .env (base)
+ * 2. .env.local (local overrides, gitignored)
+ */
+function loadEnvFiles(cwd: string = process.cwd()): void {
+  const envFiles = [
+    ".env",
+    ".env.local",
+  ];
+
+  for (const file of envFiles) {
+    const filePath = join(cwd, file);
+    if (existsSync(filePath)) {
+      loadEnv({ path: filePath, override: true });
+    }
+  }
+}
 
 const CONFIG_FILES = [
   "pxnship.config.js",
@@ -166,6 +182,10 @@ export interface LoadConfigOptions {
  */
 export async function loadConfig(options: LoadConfigOptions = {}): Promise<Config> {
   const cwd = options.cwd || process.cwd();
+
+  // Load .env and .env.local files
+  loadEnvFiles(cwd);
+
   let fileConfig: PartialConfig = {};
 
   // Find and load config file

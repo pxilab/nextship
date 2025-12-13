@@ -89,12 +89,16 @@ export async function uploadWithRsync(
     args.push("--exclude", pattern);
   }
 
-  // Include patterns (source files)
+  // Use --relative to preserve directory structure (e.g., .next/static/ stays as .next/static/)
+  args.push("--relative");
+
+  // Include patterns (source files) - use relative paths with --relative flag
   const sources: string[] = [];
   for (const pattern of include) {
     const sourcePath = join(cwd, pattern);
     if (existsSync(sourcePath)) {
-      sources.push(sourcePath);
+      // Use relative path (e.g., ./.next/static/) for --relative flag
+      sources.push("./" + pattern.replace(/\/$/, ""));
     }
   }
 
@@ -105,7 +109,7 @@ export async function uploadWithRsync(
   // Destination
   const destination = `${user}@${host}:${remotePath}/`;
 
-  // Final arguments
+  // Final arguments - sources must come before destination
   args.push(...sources, destination);
 
   // Combine command arguments

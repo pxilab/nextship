@@ -91,7 +91,22 @@ export default {
 
 ### Environment Variables
 
-For CI/CD environments, use environment variables:
+PXI NextShip loads environment files in the following order (later files override earlier ones):
+
+1. `.env` - Base environment variables
+2. `.env.local` - Local overrides (add to `.gitignore`)
+
+```bash
+# .env.local (recommended for local development)
+SSH_HOST=server.example.com
+SSH_USER=deploy
+SSH_PASSWORD=your-password
+
+# Or use SSH key
+SSH_KEY_PATH=~/.ssh/id_ed25519
+```
+
+**Available Variables:**
 
 ```bash
 # Required
@@ -101,7 +116,7 @@ SSH_USER=deploy
 # Authentication (use one)
 SSH_KEY=<private-key-content>    # Inline private key (for CI/CD)
 SSH_KEY_PATH=~/.ssh/id_ed25519   # Path to private key file
-SSH_PASSWORD=<password>          # Password auth (uses SFTP for upload)
+SSH_PASSWORD=<password>          # Password auth
 
 # Optional
 SSH_PORT=22
