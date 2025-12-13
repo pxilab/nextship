@@ -1,10 +1,15 @@
 import { defineCommand, runMain } from "citty";
+import { createRequire } from "node:module";
 import { loadConfig } from "./config/index.js";
 import { runBuild } from "./commands/build.js";
 import { runUpload } from "./commands/upload.js";
 import { runRestart } from "./commands/restart.js";
 import { runShip } from "./commands/ship.js";
 import { showBanner, showError, setVerbose } from "./utils/logger.js";
+
+// Read version from package.json
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json");
 
 const buildCommand = defineCommand({
   meta: {
@@ -167,7 +172,7 @@ const shipCommand = defineCommand({
 const main = defineCommand({
   meta: {
     name: "pxnship",
-    version: "0.1.0",
+    version,
     description: "Next.js deployment tool - Build, SSH upload, PM2 restart",
   },
   subCommands: {
