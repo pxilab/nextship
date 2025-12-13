@@ -14,6 +14,7 @@ export interface UploadProgress {
 export interface UploadResult {
   method: "rsync" | "sftp";
   filesTransferred: number;
+  bytesTransferred?: number;
   success: boolean;
   error?: string;
 }
@@ -92,6 +93,9 @@ export async function uploadWithRsync(
   // Use --relative to preserve directory structure (e.g., .next/static/ stays as .next/static/)
   args.push("--relative");
 
+  // Add --stats to get transfer statistics
+  args.push("--stats");
+
   // Include patterns (source files) - use relative paths with --relative flag
   const sources: string[] = [];
   for (const pattern of include) {
@@ -123,13 +127,34 @@ export async function uploadWithRsync(
       stdio: ["pipe", "pipe", "pipe"],
     });
 
-    // Estimate transferred file count (simple)
-    const lines = result.stdout.split("\n").filter((l) => l.trim());
-    const filesTransferred = lines.length;
+    // Parse rsync stats output
+    const stdout = result.stdout;
+
+    // Extract total file count from "Number of files: X" (includes dirs)
+    // or count lines that don't start with stats
+    const filesMatch = stdout.match(/Number of files:\s*([\d,]+)/);
+    let filesTransferred = filesMatch?.[1] ? parseInt(filesMatch[1].replace(/,/g, ""), 10) : 0;
+
+    // Fallback: count non-empty lines that look like file paths (not stats lines)
+    if (filesTransferred === 0) {
+      const lines = stdout.split("\n").filter((l) => {
+        const trimmed = l.trim();
+        return trimmed && !trimmed.startsWith("Number") && !trimmed.startsWith("Total")
+          && !trimmed.startsWith("sent") && !trimmed.startsWith("File list")
+          && !trimmed.startsWith("Matched") && !trimmed.startsWith("Unmatched");
+      });
+      filesTransferred = lines.length;
+    }
+
+    // Extract bytes from "Total sent: X B" or "sent X bytes"
+    const bytesMatch = stdout.match(/(?:Total sent|sent):\s*([\d,]+)\s*B?/i)
+      || stdout.match(/sent\s+([\d,]+)\s+bytes/i);
+    const bytesTransferred = bytesMatch?.[1] ? parseInt(bytesMatch[1].replace(/,/g, ""), 10) : undefined;
 
     return {
       method: "rsync",
       filesTransferred,
+      bytesTransferred,
       success: true,
     };
   } catch (error) {

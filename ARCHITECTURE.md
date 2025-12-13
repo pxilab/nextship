@@ -187,9 +187,12 @@ async function restart(config: Config): Promise<void> {
 
 ## Configuration
 
-### pxnship.config.js (or .pxnshiprc)
+### pxnship.config.mjs (recommended)
+
+Supported formats: `.mjs`, `.js`, `.ts`, `.pxnshiprc`, `.pxnshiprc.json`
+
 ```javascript
-module.exports = {
+export default {
   // SSH Connection
   ssh: {
     host: process.env.SSH_HOST,
@@ -217,8 +220,8 @@ module.exports = {
   // PM2
   pm2: {
     appName: 'myapp',
-    // or ecosystem file
-    ecosystem: 'ecosystem.config.js',
+    ecosystem: true,  // true = auto-detect, false = don't use, "filename.js" = specific
+    port: 3000,       // used when ecosystem is false
   },
 };
 ```

@@ -61,7 +61,13 @@ pxnship ship --config ./custom-config.js  # Use custom config file
 
 ### Config File
 
-Create `pxnship.config.js` in your project root:
+Create a config file in your project root. Supported formats:
+- `pxnship.config.mjs` (recommended - ES modules)
+- `pxnship.config.js`
+- `pxnship.config.ts`
+- `.pxnshiprc` or `.pxnshiprc.json`
+
+Example `pxnship.config.mjs`:
 
 ```js
 export default {

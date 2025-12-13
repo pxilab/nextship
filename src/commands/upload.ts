@@ -6,12 +6,23 @@ export interface UploadCommandResult {
   success: boolean;
   method: "rsync" | "sftp";
   filesTransferred: number;
+  bytesTransferred?: number;
   duration: number;
   error?: string;
 }
 
 /**
- * Dosyaları sunucuya yükle
+ * Format bytes to human readable string
+ */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+/**
+ * Upload files to server
  */
 export async function runUpload(
   sshConfig: SSHConfig,
@@ -41,14 +52,19 @@ export async function runUpload(
       };
     }
 
+    const sizeInfo = result.bytesTransferred
+      ? `, ${formatBytes(result.bytesTransferred)}`
+      : "";
+
     spinner.success({
-      text: `Upload completed (${result.filesTransferred} files via ${result.method})`,
+      text: `Upload completed (${result.filesTransferred} files${sizeInfo} via ${result.method})`,
     });
 
     return {
       success: true,
       method: result.method,
       filesTransferred: result.filesTransferred,
+      bytesTransferred: result.bytesTransferred,
       duration: Date.now() - startTime,
     };
   } catch (error) {

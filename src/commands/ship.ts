@@ -129,6 +129,7 @@ export async function runShip(
       remotePath: config.upload.remotePath,
       appName: config.pm2.appName,
       duration: result.totalDuration,
+      bytesTransferred: uploadResult.bytesTransferred,
     });
 
     return result;

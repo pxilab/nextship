@@ -13,14 +13,14 @@ export interface Logger {
 let verboseMode = false;
 
 /**
- * Verbose modu ayarla
+ * Set verbose mode
  */
 export function setVerbose(value: boolean): void {
   verboseMode = value;
 }
 
 /**
- * Logger oluştur
+ * Create logger
  */
 export function createLogger(): Logger {
   return {
@@ -55,7 +55,7 @@ export function createLogger(): Logger {
 }
 
 /**
- * Banner göster
+ * Show banner
  */
 export function showBanner(): void {
   console.log();
@@ -65,15 +65,26 @@ export function showBanner(): void {
 }
 
 /**
- * Deployment özeti göster
+ * Format bytes to human readable string
+ */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+/**
+ * Show deployment summary
  */
 export function showSummary(options: {
   host: string;
   remotePath: string;
   appName: string;
   duration: number;
+  bytesTransferred?: number;
 }): void {
-  const { host, remotePath, appName, duration } = options;
+  const { host, remotePath, appName, duration, bytesTransferred } = options;
 
   console.log();
   console.log(pc.green(pc.bold("  Deployment Complete!")));
@@ -81,12 +92,15 @@ export function showSummary(options: {
   console.log(`  ${pc.gray("Server:")}     ${host}`);
   console.log(`  ${pc.gray("Path:")}       ${remotePath}`);
   console.log(`  ${pc.gray("PM2 App:")}    ${appName}`);
+  if (bytesTransferred) {
+    console.log(`  ${pc.gray("Uploaded:")}   ${formatBytes(bytesTransferred)}`);
+  }
   console.log(`  ${pc.gray("Duration:")}   ${(duration / 1000).toFixed(1)}s`);
   console.log();
 }
 
 /**
- * Hata detaylarını göster
+ * Show error details
  */
 export function showError(error: Error | string, verbose?: boolean): void {
   const message = error instanceof Error ? error.message : error;
