@@ -84,7 +84,9 @@ export default {
 
   pm2: {
     appName: "myapp",
+    ecosystem: true,  // true = auto-detect, false = don't use, "filename.js" = specific file
     reload: true,
+    port: 3000,       // Used when ecosystem is false
   },
 };
 ```
@@ -167,6 +169,18 @@ jobs:
 ├── package.json
 └── ecosystem.config.js  # Optional
 ```
+
+### PM2 Configuration
+
+PXI NextShip supports three modes for PM2:
+
+| `ecosystem` value | Behavior |
+|-------------------|----------|
+| `true` (default) | Auto-detect `ecosystem.config.js` in remote directory |
+| `false` | Don't use ecosystem file, start with `server.js` directly |
+| `"custom.config.js"` | Use a specific ecosystem file |
+
+When `ecosystem: false`, you can specify a custom port with the `port` option.
 
 ### PM2 Ecosystem File (Optional)
 
