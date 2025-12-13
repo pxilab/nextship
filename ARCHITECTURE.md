@@ -30,7 +30,7 @@ Next.js deployment tool that builds, uploads via SSH, and restarts PM2.
 
 ## Tool Distribution
 
-PXI NextShip will be distributed via **GitHub Packages npm registry**:
+PXI NextShip is distributed via **npmjs.org**:
 
 ```bash
 # Install (npm)
@@ -336,7 +336,7 @@ jobs:
 
 ---
 
-## Publishing to GitHub Packages
+## Publishing to npm
 
 ### package.json
 ```json
@@ -353,7 +353,7 @@ jobs:
     "dist"
   ],
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "repository": {
     "type": "git",
@@ -374,9 +374,6 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -388,25 +385,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          registry-url: 'https://npm.pkg.github.com'
+          registry-url: 'https://registry.npmjs.org'
 
       - run: bun install
       - run: bun run build
-      - run: npm publish
+      - name: Publish to npm
+        run: npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
 ### Installing the Package
 ```bash
-# .npmrc (project root)
-@pxilab:registry=https://npm.pkg.github.com
-
 # Install (npm)
 npm install -g @pxilab/nextship
 
 # Install (bun)
 bun add -g @pxilab/nextship
+
+# Or run directly
+npx @pxilab/nextship ship
+bunx @pxilab/nextship ship
 ```
 
 ---
@@ -519,7 +518,7 @@ pm2 startup
 
 ### Phase 3: Publish
 - [x] TypeScript build setup (tsup)
-- [x] GitHub Packages publish workflow
+- [x] npm publish workflow
 - [x] README & documentation
 
 ### Phase 4: Extras
