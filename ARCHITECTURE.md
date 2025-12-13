@@ -503,23 +503,24 @@ pm2 startup
 ## Development Roadmap
 
 ### Phase 1: Core (MVP)
-- [ ] CLI scaffolding (commander)
-- [ ] Config loader
-- [ ] Build command (execa with bun/npm run build)
-- [ ] SSH connection (ssh2)
-- [ ] Upload command (rsync over ssh)
-- [ ] PM2 restart command
+- [x] CLI scaffolding (citty)
+- [x] Config loader (Zod validation + env support)
+- [x] Build command (execa with bun/npm run build)
+- [x] SSH connection (ssh2 with key + password auth)
+- [x] Upload command (rsync + SFTP fallback)
+- [x] PM2 restart command
 
 ### Phase 2: Polish
-- [ ] Dry-run mode
-- [ ] Verbose logging
-- [ ] Error handling & rollback
-- [ ] Health check
+- [x] Dry-run mode
+- [x] Verbose logging
+- [x] Error handling
+- [x] Health check (verifyAppRunning)
+- [ ] Rollback on failure
 
 ### Phase 3: Publish
-- [ ] TypeScript build setup (tsup)
+- [x] TypeScript build setup (tsup)
 - [ ] GitHub Packages publish workflow
-- [ ] README & documentation
+- [x] README & documentation
 
 ### Phase 4: Extras
 - [ ] Zero-downtime (symlink strategy)
