@@ -8,18 +8,18 @@ export interface PM2Result {
 }
 
 /**
- * PM2 uygulamasını yeniden yükle veya yoksa başlat
- * ecosystem ayarına göre:
- *   true | "auto" = ecosystem.config.js varsa otomatik kullan
- *   false = ecosystem kullanma, standalone server.js ile başlat
- *   "filename.js" = belirtilen ecosystem dosyasını kullan
+ * Reload PM2 app or start if not exists
+ * Based on ecosystem setting:
+ *   true | "auto" = auto-detect ecosystem.config.js
+ *   false = don't use ecosystem, start with standalone server.js
+ *   "filename.js" = use specified ecosystem file
  */
 export async function reloadApp(
   sshConfig: SSHConfig,
   pm2Config: PM2Config,
   remotePath?: string
 ): Promise<PM2Result> {
-  const { appName, ecosystem, reload } = pm2Config;
+  const { appName, ecosystem, reload, port } = pm2Config;
   let conn: SSHConnection | null = null;
 
   try {
@@ -63,7 +63,7 @@ export async function reloadApp(
     let command: string;
 
     if (appExists) {
-      // Reload veya restart komutu
+      // Reload or restart command
       const action = reload ? "reload" : "restart";
       const target = ecosystemFile || appName;
       command = `pm2 ${action} ${target} --update-env`;
@@ -80,8 +80,9 @@ export async function reloadApp(
         // Use ecosystem file to start
         command = `cd /d "${winPath}" && pm2 start ${ecosystemFile} --only ${appName}`;
       } else {
-        // Fallback to standalone server.js
-        command = `cd /d "${winPath}" && pm2 start .next\\standalone\\server.js --name ${appName}`;
+        // Fallback to standalone server.js with optional port
+        const portEnv = port ? ` --env PORT=${port}` : "";
+        command = `cd /d "${winPath}" && pm2 start .next\\standalone\\server.js --name ${appName}${portEnv}`;
       }
     }
 
@@ -114,7 +115,7 @@ export async function reloadApp(
 }
 
 /**
- * PM2 uygulama durumunu kontrol et
+ * Check PM2 app status
  */
 export async function getAppStatus(
   sshConfig: SSHConfig,
@@ -169,7 +170,7 @@ export async function getAppStatus(
 }
 
 /**
- * PM2 uygulamasının çalışır durumda olduğunu doğrula
+ * Verify PM2 app is running
  */
 export async function verifyAppRunning(
   sshConfig: SSHConfig,
@@ -200,14 +201,14 @@ export async function verifyAppRunning(
 }
 
 /**
- * PM2 uygulamasını başlat (ilk deploy için)
+ * Start PM2 app (for initial deploy)
  */
 export async function startApp(
   sshConfig: SSHConfig,
   pm2Config: PM2Config,
   cwd: string
 ): Promise<PM2Result> {
-  const { appName, ecosystem } = pm2Config;
+  const { appName, ecosystem, port } = pm2Config;
   let conn: SSHConnection | null = null;
 
   try {
@@ -219,8 +220,9 @@ export async function startApp(
       // Start with ecosystem file
       command = `cd ${cwd} && pm2 start ${ecosystem}`;
     } else {
-      // Start with standalone server
-      command = `cd ${cwd} && pm2 start .next/standalone/server.js --name ${appName}`;
+      // Start with standalone server with optional port
+      const portEnv = port ? ` --env PORT=${port}` : "";
+      command = `cd ${cwd} && pm2 start .next/standalone/server.js --name ${appName}${portEnv}`;
     }
 
     const result = await conn.exec(command);

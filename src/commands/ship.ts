@@ -24,7 +24,7 @@ export interface ShipOptions {
 }
 
 /**
- * Tüm deployment adımlarını çalıştır: build → upload → restart
+ * Run all deployment steps: build → upload → restart
  */
 export async function runShip(
   config: Config,
@@ -48,6 +48,7 @@ export async function runShip(
     console.log(`    SSH Port:     ${config.ssh.port}`);
     console.log(`    Remote Path:  ${config.upload.remotePath}`);
     console.log(`    PM2 App:      ${config.pm2.appName}`);
+    console.log(`    PM2 Port:     ${config.pm2.port || "default (3000)"}`);
     console.log(`    Build Cmd:    ${config.build.command}`);
     console.log(`    Skip Build:   ${options.skipBuild || config.build.skipBuild}`);
     console.log();

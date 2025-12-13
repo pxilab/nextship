@@ -11,7 +11,7 @@ export interface BuildResult {
 }
 
 /**
- * Next.js projesini build et
+ * Build Next.js project
  */
 export async function runBuild(
   config: BuildConfig,
@@ -32,7 +32,7 @@ export async function runBuild(
   spinner.start();
 
   try {
-    // package.json kontrol et
+    // Check package.json exists
     const packageJsonPath = join(cwd, "package.json");
     if (!existsSync(packageJsonPath)) {
       throw new Error("package.json not found in current directory");
@@ -53,7 +53,7 @@ export async function runBuild(
       },
     });
 
-    // Standalone output kontrol et
+    // Check standalone output exists
     if (config.standalone) {
       const standalonePath = join(cwd, ".next", "standalone");
       if (!existsSync(standalonePath)) {

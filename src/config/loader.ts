@@ -33,7 +33,7 @@ const CONFIG_FILES = [
 ];
 
 /**
- * ~ karakterini home directory ile değiştir
+ * Replace ~ with home directory
  */
 function expandTilde(filePath: string): string {
   if (filePath.startsWith("~")) {
@@ -43,7 +43,7 @@ function expandTilde(filePath: string): string {
 }
 
 /**
- * Config dosyasını bul
+ * Find config file
  */
 function findConfigFile(cwd: string): string | null {
   for (const file of CONFIG_FILES) {
@@ -56,7 +56,7 @@ function findConfigFile(cwd: string): string | null {
 }
 
 /**
- * Config dosyasını oku ve parse et
+ * Read and parse config file
  */
 async function loadConfigFile(filePath: string): Promise<PartialConfig> {
   const ext = filePath.split(".").pop();
@@ -73,12 +73,12 @@ async function loadConfigFile(filePath: string): Promise<PartialConfig> {
 }
 
 /**
- * Environment variable'lardan config oluştur
+ * Create config from environment variables
  */
 function getEnvConfig(): PartialConfig {
   const env = process.env;
 
-  // SSH key'i oku (SSH_KEY veya SSH_KEY_PATH)
+  // Read SSH key (SSH_KEY or SSH_KEY_PATH)
   let privateKey: string | undefined;
   let privateKeyPath: string | undefined;
 
@@ -116,7 +116,7 @@ function getEnvConfig(): PartialConfig {
 }
 
 /**
- * İki config objesini deep merge et
+ * Deep merge two config objects
  */
 function deepMerge<T extends Record<string, unknown>>(
   target: T,
@@ -151,7 +151,7 @@ function deepMerge<T extends Record<string, unknown>>(
 }
 
 /**
- * Undefined değerleri filtrele
+ * Filter undefined values
  */
 function filterUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
   const result: Partial<T> = {};
@@ -178,7 +178,7 @@ export interface LoadConfigOptions {
 }
 
 /**
- * Config'i yükle ve validate et
+ * Load and validate config
  */
 export async function loadConfig(options: LoadConfigOptions = {}): Promise<Config> {
   const cwd = options.cwd || process.cwd();
@@ -225,7 +225,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<Confi
     }
   }
 
-  // Zod ile validate et
+  // Validate with Zod
   const result = configSchema.safeParse(mergedConfig);
 
   if (!result.success) {
@@ -239,7 +239,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<Confi
 }
 
 /**
- * Config dosyası var mı kontrol et
+ * Check if config file exists
  */
 export function hasConfigFile(cwd: string = process.cwd()): boolean {
   return findConfigFile(cwd) !== null;

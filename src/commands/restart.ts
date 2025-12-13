@@ -9,7 +9,7 @@ export interface RestartResult {
 }
 
 /**
- * PM2 uygulamasını yeniden başlat veya yoksa başlat
+ * Restart PM2 app or start if not exists
  */
 export async function runRestart(
   sshConfig: SSHConfig,

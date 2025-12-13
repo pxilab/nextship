@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * SSH bağlantı ayarları
+ * SSH connection settings
  */
 export const sshConfigSchema = z.object({
   host: z.string().min(1, "SSH host is required"),
@@ -16,7 +16,7 @@ export const sshConfigSchema = z.object({
 );
 
 /**
- * Build ayarları
+ * Build settings
  */
 export const buildConfigSchema = z.object({
   command: z.string().default("npm run build"),
@@ -25,7 +25,7 @@ export const buildConfigSchema = z.object({
 });
 
 /**
- * Upload ayarları
+ * Upload settings
  */
 export const uploadConfigSchema = z.object({
   remotePath: z.string().min(1, "Remote path is required"),
@@ -46,7 +46,7 @@ export const uploadConfigSchema = z.object({
 });
 
 /**
- * PM2 ayarları
+ * PM2 settings
  * ecosystem: true | "auto" = auto-detect ecosystem.config.js
  *            false = don't use ecosystem file
  *            "filename.js" = use specific ecosystem file
@@ -55,10 +55,11 @@ export const pm2ConfigSchema = z.object({
   appName: z.string().min(1, "PM2 app name is required"),
   ecosystem: z.union([z.boolean(), z.string()]).default(true),
   reload: z.boolean().default(true),
+  port: z.number().int().positive().optional(),
 });
 
 /**
- * Ana config schema
+ * Main config schema
  */
 export const configSchema = z.object({
   ssh: sshConfigSchema,
@@ -74,7 +75,7 @@ export type PM2Config = z.infer<typeof pm2ConfigSchema>;
 export type Config = z.infer<typeof configSchema>;
 
 /**
- * Partial config (env variables ile merge edilecek)
+ * Partial config (to be merged with env variables)
  */
 export type PartialConfig = {
   ssh?: Partial<z.input<typeof sshConfigSchema>>;

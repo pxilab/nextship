@@ -19,7 +19,7 @@ export interface UploadResult {
 }
 
 /**
- * rsync mevcut mu kontrol et
+ * Check if rsync is available
  */
 export async function isRsyncAvailable(): Promise<boolean> {
   try {
@@ -31,7 +31,7 @@ export async function isRsyncAvailable(): Promise<boolean> {
 }
 
 /**
- * sshpass mevcut mu kontrol et (password auth için)
+ * Check if sshpass is available (for password auth)
  */
 export async function isSshpassAvailable(): Promise<boolean> {
   try {
@@ -43,7 +43,7 @@ export async function isSshpassAvailable(): Promise<boolean> {
 }
 
 /**
- * rsync ile dosyaları yükle
+ * Upload files with rsync
  */
 export async function uploadWithRsync(
   sshConfig: SSHConfig,
@@ -144,7 +144,7 @@ export async function uploadWithRsync(
 }
 
 /**
- * Dizin içeriğini recursive olarak listele
+ * List directory contents recursively
  */
 function walkDirectory(
   dir: string,
@@ -348,7 +348,7 @@ export async function uploadWithSFTP(
 }
 
 /**
- * Otomatik olarak en iyi yükleme yöntemini seç
+ * Automatically select the best upload method
  */
 export async function upload(
   sshConfig: SSHConfig,
@@ -360,7 +360,7 @@ export async function upload(
   const hasKeyPath = Boolean(sshConfig.privateKeyPath);
   const isPasswordAuth = Boolean(sshConfig.password) && !sshConfig.privateKey && !hasKeyPath;
 
-  // Key-based auth ile rsync
+  // Key-based auth with rsync
   if (uploadConfig.useRsync && rsyncAvailable && hasKeyPath) {
     onProgress?.("Using rsync for file transfer");
     return uploadWithRsync(sshConfig, uploadConfig, cwd, onProgress);

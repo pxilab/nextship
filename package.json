@@ -1,6 +1,6 @@
 {
   "name": "@pxilab/nextship",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Next.js deployment tool - Build, SSH upload, PM2 restart",
   "type": "module",
   "bin": {
