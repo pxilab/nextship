@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { config as loadEnv } from "dotenv";
 import { configSchema, type Config, type PartialConfig } from "./schema.js";
 
-// .env dosyasını yükle
+// Load .env file
 loadEnv();
 
 const CONFIG_FILES = [
@@ -50,7 +50,7 @@ async function loadConfigFile(filePath: string): Promise<PartialConfig> {
     return JSON.parse(content) as PartialConfig;
   }
 
-  // JS/MJS/TS dosyaları için dynamic import
+  // Dynamic import for JS/MJS/TS files
   const fileUrl = pathToFileURL(resolve(filePath)).href;
   const module = await import(fileUrl);
   return (module.default || module) as PartialConfig;
@@ -82,6 +82,7 @@ function getEnvConfig(): PartialConfig {
       port: env.SSH_PORT ? Number.parseInt(env.SSH_PORT, 10) : undefined,
       privateKey,
       privateKeyPath,
+      password: env.SSH_PASSWORD,
     },
     build: {
       command: env.BUILD_COMMAND,
@@ -167,7 +168,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<Confi
   const cwd = options.cwd || process.cwd();
   let fileConfig: PartialConfig = {};
 
-  // Config dosyasını bul ve yükle
+  // Find and load config file
   const configPath = options.configPath || findConfigFile(cwd);
 
   if (configPath && existsSync(configPath)) {
@@ -180,21 +181,21 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<Confi
     }
   }
 
-  // Env config'i al
+  // Get env config
   const envConfig = filterUndefined(getEnvConfig()) as PartialConfig;
 
-  // Merge: file config + env config (env öncelikli)
+  // Merge: file config + env config (env takes precedence)
   const mergedConfig = deepMerge(
     fileConfig as Record<string, unknown>,
     envConfig as Record<string, unknown>
   ) as PartialConfig;
 
-  // SSH key path'i genişlet
+  // Expand SSH key path
   if (mergedConfig.ssh?.privateKeyPath) {
     mergedConfig.ssh.privateKeyPath = expandTilde(mergedConfig.ssh.privateKeyPath);
   }
 
-  // Private key'i dosyadan oku (eğer path verilmişse)
+  // Read private key from file (if path is provided)
   if (mergedConfig.ssh?.privateKeyPath && !mergedConfig.ssh?.privateKey) {
     const keyPath = mergedConfig.ssh.privateKeyPath;
     if (existsSync(keyPath)) {

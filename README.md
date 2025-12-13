@@ -97,7 +97,11 @@ For CI/CD environments, use environment variables:
 # Required
 SSH_HOST=server.example.com
 SSH_USER=deploy
-SSH_KEY=<private-key-content>    # or SSH_KEY_PATH=~/.ssh/id_ed25519
+
+# Authentication (use one)
+SSH_KEY=<private-key-content>    # Inline private key (for CI/CD)
+SSH_KEY_PATH=~/.ssh/id_ed25519   # Path to private key file
+SSH_PASSWORD=<password>          # Password auth (uses SFTP for upload)
 
 # Optional
 SSH_PORT=22

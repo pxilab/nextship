@@ -9,9 +9,10 @@ export const sshConfigSchema = z.object({
   port: z.number().int().positive().default(22),
   privateKeyPath: z.string().optional(),
   privateKey: z.string().optional(),
+  password: z.string().optional(),
 }).refine(
-  (data) => data.privateKeyPath || data.privateKey,
-  { message: "Either privateKeyPath or privateKey must be provided" }
+  (data) => data.privateKeyPath || data.privateKey || data.password,
+  { message: "Either privateKeyPath, privateKey, or password must be provided" }
 );
 
 /**

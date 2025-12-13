@@ -11,9 +11,10 @@ export default {
     host: process.env.SSH_HOST || "server.example.com",
     user: process.env.SSH_USER || "deploy",
     port: 22,
-    // Use one of the following:
+    // Authentication - use ONE of the following:
     privateKeyPath: "~/.ssh/id_ed25519",
     // privateKey: process.env.SSH_KEY,  // For CI/CD (inline key)
+    // password: process.env.SSH_PASSWORD,  // Password auth (uses SFTP for upload)
   },
 
   // Build Settings

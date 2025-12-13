@@ -19,7 +19,7 @@ export async function runBuild(
 ): Promise<BuildResult> {
   const startTime = Date.now();
 
-  // Build atlanacak mı?
+  // Skip build if configured
   if (config.skipBuild) {
     logger.info("Skipping build step (skipBuild: true)");
     return {
@@ -38,7 +38,7 @@ export async function runBuild(
       throw new Error("package.json not found in current directory");
     }
 
-    // Build komutunu çalıştır
+    // Run build command
     const [runner, ...args] = config.command.split(" ");
     if (!runner) {
       throw new Error("Invalid build command");
@@ -68,7 +68,7 @@ export async function runBuild(
       }
     }
 
-    // .next klasörü kontrol et
+    // Check .next directory exists
     const nextDir = join(cwd, ".next");
     if (!existsSync(nextDir)) {
       throw new Error(".next directory not created. Build may have failed.");

@@ -18,5 +18,5 @@ export { runRestart, type RestartResult } from "./commands/restart.js";
 export { runShip, type ShipResult, type ShipOptions } from "./commands/ship.js";
 
 export { createSSHConnection, testConnection, execRemoteCommand } from "./lib/ssh.js";
-export { upload, uploadWithRsync, uploadWithSFTP, isRsyncAvailable } from "./lib/rsync.js";
+export { upload, uploadWithRsync, uploadWithSFTP, isRsyncAvailable, isSshpassAvailable } from "./lib/rsync.js";
 export { reloadApp, getAppStatus, verifyAppRunning, startApp } from "./lib/pm2.js";

@@ -102,7 +102,7 @@ export async function runShip(
       return result;
     }
 
-    // Başarılı!
+    // Success!
     result.success = true;
     result.totalDuration = Date.now() - startTime;
 

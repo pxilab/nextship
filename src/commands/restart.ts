@@ -34,7 +34,7 @@ export async function runRestart(
       };
     }
 
-    // Uygulamanın çalıştığını doğrula
+    // Verify application is running
     spinner.update({ text: "Verifying application is running..." });
 
     const verification = await verifyAppRunning(sshConfig, pm2Config.appName);

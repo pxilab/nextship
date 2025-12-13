@@ -122,7 +122,7 @@ export async function verifyAppRunning(
       };
     }
 
-    // Son deneme değilse bekle
+    // Wait before next retry
     if (i < retries - 1) {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
@@ -151,10 +151,10 @@ export async function startApp(
     let command: string;
 
     if (ecosystem) {
-      // Ecosystem dosyası ile başlat
+      // Start with ecosystem file
       command = `cd ${cwd} && pm2 start ${ecosystem}`;
     } else {
-      // Standalone server ile başlat
+      // Start with standalone server
       command = `cd ${cwd} && pm2 start .next/standalone/server.js --name ${appName}`;
     }
 
@@ -167,7 +167,7 @@ export async function startApp(
       };
     }
 
-    // PM2 save ile kalıcı yap
+    // Save PM2 process list
     await conn.exec("pm2 save");
 
     return {

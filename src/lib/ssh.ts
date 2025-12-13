@@ -18,6 +18,7 @@ export async function createSSHConnection(config: SSHConfig): Promise<SSHConnect
     port: config.port,
     username: config.user,
     privateKey: config.privateKey,
+    password: config.password,
   };
 
   return new Promise((resolve, reject) => {

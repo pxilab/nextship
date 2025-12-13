@@ -31,6 +31,18 @@ export async function isRsyncAvailable(): Promise<boolean> {
 }
 
 /**
+ * sshpass mevcut mu kontrol et (password auth için)
+ */
+export async function isSshpassAvailable(): Promise<boolean> {
+  try {
+    await execa("sshpass", ["-V"]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * rsync ile dosyaları yükle
  */
 export async function uploadWithRsync(
@@ -40,21 +52,36 @@ export async function uploadWithRsync(
   onProgress?: (message: string) => void
 ): Promise<UploadResult> {
   const { remotePath, exclude, include, rsyncOptions } = uploadConfig;
-  const { host, user, port, privateKeyPath, privateKey } = sshConfig;
+  const { host, user, port, privateKeyPath, privateKey, password } = sshConfig;
 
-  // SSH key için geçici dosya yoksa privateKeyPath kullan
-  // Not: rsync direkt key içeriği alamaz, dosya yolu gerekli
-  if (!privateKeyPath && privateKey) {
+  // rsync requires a key file path, it cannot use inline key content
+  if (!privateKeyPath && privateKey && !password) {
     throw new Error(
       "rsync requires privateKeyPath. For inline SSH keys, SFTP fallback will be used."
     );
   }
 
-  // rsync argümanlarını oluştur
+  // Password auth requires sshpass
+  const usePassword = Boolean(password) && !privateKeyPath;
+  let command = "rsync";
+  let commandArgs: string[] = [];
+
+  if (usePassword && password) {
+    // Run rsync via sshpass for password auth
+    command = "sshpass";
+    commandArgs = ["-p", password, "rsync"];
+  }
+
+  // Build rsync arguments
   const args: string[] = [...rsyncOptions];
 
-  // SSH options
-  const sshCommand = `ssh -p ${port} -i "${privateKeyPath}" -o StrictHostKeyChecking=no`;
+  // SSH command options
+  let sshCommand: string;
+  if (usePassword) {
+    sshCommand = `ssh -p ${port} -o StrictHostKeyChecking=no -o PubkeyAuthentication=no`;
+  } else {
+    sshCommand = `ssh -p ${port} -i "${privateKeyPath}" -o StrictHostKeyChecking=no`;
+  }
   args.push("-e", sshCommand);
 
   // Exclude patterns
@@ -62,7 +89,7 @@ export async function uploadWithRsync(
     args.push("--exclude", pattern);
   }
 
-  // Include patterns (kaynak dosyalar)
+  // Include patterns (source files)
   const sources: string[] = [];
   for (const pattern of include) {
     const sourcePath = join(cwd, pattern);
@@ -75,21 +102,24 @@ export async function uploadWithRsync(
     throw new Error("No files to upload. Make sure build output exists.");
   }
 
-  // Hedef
+  // Destination
   const destination = `${user}@${host}:${remotePath}/`;
 
-  // Son argümanlar
+  // Final arguments
   args.push(...sources, destination);
+
+  // Combine command arguments
+  const finalArgs = [...commandArgs, ...args];
 
   onProgress?.(`Syncing files to ${host}:${remotePath}`);
 
   try {
-    const result = await execa("rsync", args, {
+    const result = await execa(command, finalArgs, {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
     });
 
-    // Aktarılan dosya sayısını tahmin et (basit)
+    // Estimate transferred file count (simple)
     const lines = result.stdout.split("\n").filter((l) => l.trim());
     const filesTransferred = lines.length;
 
@@ -127,10 +157,10 @@ function walkDirectory(
     const fullPath = join(dir, entry.name);
     const relativePath = relative(baseDir, fullPath);
 
-    // Exclude kontrolü
+    // Check exclude patterns
     const shouldExclude = exclude.some((pattern) => {
       if (pattern.includes("*")) {
-        // Basit glob desteği
+        // Simple glob support
         const regex = new RegExp(pattern.replace(/\*/g, ".*"));
         return regex.test(relativePath);
       }
@@ -165,7 +195,7 @@ export async function uploadWithSFTP(
     let filesTransferred = 0;
     let currentFileIndex = 0;
 
-    // Yüklenecek dosyaları bul
+    // Find files to upload
     const filesToUpload: { local: string; remote: string }[] = [];
 
     for (const pattern of include) {
@@ -214,7 +244,7 @@ export async function uploadWithSFTP(
           return;
         }
 
-        // Sırayla dosyaları yükle
+        // Upload files sequentially
         const uploadNext = () => {
           if (currentFileIndex >= filesToUpload.length) {
             client.end();
@@ -237,15 +267,15 @@ export async function uploadWithSFTP(
           const remoteDir = dirname(remote);
           const localStat = statSync(local);
 
-          // Hedef dizini oluştur (mkdir -p benzeri)
+          // Create target directory (mkdir -p equivalent)
           const mkdirRecursive = (path: string, callback: () => void) => {
             sftp.mkdir(path, (_err) => {
-              // Dizin zaten var veya oluşturuldu
+              // Directory already exists or was created
               callback();
             });
           };
 
-          // Dizin yollarını parçala ve sırayla oluştur
+          // Split directory path and create sequentially
           const parts = remoteDir.split("/").filter((p) => p);
           let currentPath = "";
           const createDirs = (index: number, done: () => void) => {
@@ -258,7 +288,7 @@ export async function uploadWithSFTP(
           };
 
           createDirs(0, () => {
-            // Dosyayı yükle
+            // Upload the file
             const readStream = createReadStream(local);
             const writeStream = sftp.createWriteStream(remote);
 
@@ -308,6 +338,7 @@ export async function uploadWithSFTP(
       port: sshConfig.port,
       username: sshConfig.user,
       privateKey: sshConfig.privateKey,
+      password: sshConfig.password,
     });
   });
 }
@@ -321,13 +352,23 @@ export async function upload(
   cwd: string = process.cwd(),
   onProgress?: (message: string) => void
 ): Promise<UploadResult> {
-  // rsync mevcut mu ve privateKeyPath var mı kontrol et
   const rsyncAvailable = await isRsyncAvailable();
   const hasKeyPath = Boolean(sshConfig.privateKeyPath);
+  const isPasswordAuth = Boolean(sshConfig.password) && !sshConfig.privateKey && !hasKeyPath;
 
+  // Key-based auth ile rsync
   if (uploadConfig.useRsync && rsyncAvailable && hasKeyPath) {
     onProgress?.("Using rsync for file transfer");
     return uploadWithRsync(sshConfig, uploadConfig, cwd, onProgress);
+  }
+
+  // Password auth with sshpass + rsync (if sshpass available)
+  if (uploadConfig.useRsync && rsyncAvailable && isPasswordAuth) {
+    const sshpassAvailable = await isSshpassAvailable();
+    if (sshpassAvailable) {
+      onProgress?.("Using rsync with sshpass for file transfer");
+      return uploadWithRsync(sshConfig, uploadConfig, cwd, onProgress);
+    }
   }
 
   // SFTP fallback
