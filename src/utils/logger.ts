@@ -75,6 +75,13 @@ function formatBytes(bytes: number): string {
 }
 
 /**
+ * Format duration in seconds
+ */
+function formatDuration(ms: number): string {
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+/**
  * Show deployment summary
  */
 export function showSummary(options: {
@@ -83,8 +90,10 @@ export function showSummary(options: {
   appName: string;
   duration: number;
   bytesTransferred?: number;
+  buildDuration?: number;
+  uploadDuration?: number;
 }): void {
-  const { host, remotePath, appName, duration, bytesTransferred } = options;
+  const { host, remotePath, appName, duration, bytesTransferred, buildDuration, uploadDuration } = options;
 
   console.log();
   console.log(pc.green(pc.bold("  Deployment Complete!")));
@@ -95,7 +104,13 @@ export function showSummary(options: {
   if (bytesTransferred) {
     console.log(`  ${pc.gray("Uploaded:")}   ${formatBytes(bytesTransferred)}`);
   }
-  console.log(`  ${pc.gray("Duration:")}   ${(duration / 1000).toFixed(1)}s`);
+  if (buildDuration !== undefined) {
+    console.log(`  ${pc.gray("Build:")}     ${formatDuration(buildDuration)}`);
+  }
+  if (uploadDuration !== undefined) {
+    console.log(`  ${pc.gray("Upload:")}    ${formatDuration(uploadDuration)}`);
+  }
+  console.log(`  ${pc.gray("Total:")}     ${formatDuration(duration)}`);
   console.log();
 }
 

@@ -130,6 +130,8 @@ export async function runShip(
       appName: config.pm2.appName,
       duration: result.totalDuration,
       bytesTransferred: uploadResult.bytesTransferred,
+      buildDuration: result.steps.build?.duration,
+      uploadDuration: result.steps.upload?.duration,
     });
 
     return result;
