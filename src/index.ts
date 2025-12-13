@@ -14,6 +14,7 @@ export {
 
 export { runBuild, type BuildResult } from "./commands/build.js";
 export { runUpload, type UploadCommandResult } from "./commands/upload.js";
+export { runPrepare, type PrepareResult } from "./commands/prepare.js";
 export { runRestart, type RestartResult } from "./commands/restart.js";
 export { runShip, type ShipResult, type ShipOptions } from "./commands/ship.js";
 

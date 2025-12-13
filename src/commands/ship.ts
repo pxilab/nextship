@@ -1,6 +1,7 @@
 import type { Config } from "../config/schema.js";
 import { runBuild } from "./build.js";
 import { runUpload } from "./upload.js";
+import { runPrepare } from "./prepare.js";
 import { runRestart } from "./restart.js";
 import { logger, showSummary, showError } from "../utils/logger.js";
 
@@ -9,6 +10,7 @@ export interface ShipResult {
   steps: {
     build?: { success: boolean; duration: number };
     upload?: { success: boolean; duration: number; method: string };
+    prepare?: { success: boolean; duration: number };
     restart?: { success: boolean; duration: number };
   };
   totalDuration: number;
@@ -89,8 +91,23 @@ export async function runShip(
       return result;
     }
 
-    // Step 3: Restart PM2
-    const restartResult = await runRestart(config.ssh, config.pm2);
+    // Step 3: Prepare standalone folder (copy static + public)
+    if (config.build.standalone) {
+      const prepareResult = await runPrepare(config.ssh, config.upload);
+      result.steps.prepare = {
+        success: prepareResult.success,
+        duration: prepareResult.duration,
+      };
+
+      if (!prepareResult.success) {
+        result.error = prepareResult.error;
+        result.totalDuration = Date.now() - startTime;
+        return result;
+      }
+    }
+
+    // Step 4: Restart PM2 (or start if not exists)
+    const restartResult = await runRestart(config.ssh, config.pm2, config.upload.remotePath);
     result.steps.restart = {
       success: restartResult.success,
       duration: restartResult.duration,

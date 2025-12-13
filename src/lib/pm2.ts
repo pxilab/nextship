@@ -8,11 +8,16 @@ export interface PM2Result {
 }
 
 /**
- * PM2 uygulamasını yeniden yükle
+ * PM2 uygulamasını yeniden yükle veya yoksa başlat
+ * ecosystem ayarına göre:
+ *   true | "auto" = ecosystem.config.js varsa otomatik kullan
+ *   false = ecosystem kullanma, standalone server.js ile başlat
+ *   "filename.js" = belirtilen ecosystem dosyasını kullan
  */
 export async function reloadApp(
   sshConfig: SSHConfig,
-  pm2Config: PM2Config
+  pm2Config: PM2Config,
+  remotePath?: string
 ): Promise<PM2Result> {
   const { appName, ecosystem, reload } = pm2Config;
   let conn: SSHConnection | null = null;
@@ -20,23 +25,83 @@ export async function reloadApp(
   try {
     conn = await createSSHConnection(sshConfig);
 
-    // Reload veya restart komutu
-    const action = reload ? "reload" : "restart";
-    const target = ecosystem || appName;
-    const command = `pm2 ${action} ${target} --update-env`;
+    // Convert WSL path to Windows path
+    const winPath = remotePath
+      ? remotePath.replace(/^\/mnt\/([a-z])\//, "$1:\\\\").replace(/\//g, "\\")
+      : "";
+
+    // Determine ecosystem file based on config
+    let ecosystemFile: string | null = null;
+
+    if (ecosystem === false) {
+      // Explicitly disabled - don't use ecosystem
+      ecosystemFile = null;
+    } else if (typeof ecosystem === "string" && ecosystem !== "auto") {
+      // Specific file provided
+      ecosystemFile = ecosystem;
+    } else if ((ecosystem === true || ecosystem === "auto") && remotePath) {
+      // Auto-detect: check if ecosystem.config.js exists
+      const checkEcosystem = await conn.exec(`if exist "${winPath}\\ecosystem.config.js" echo EXISTS`);
+      if (checkEcosystem.stdout.includes("EXISTS")) {
+        ecosystemFile = "ecosystem.config.js";
+      }
+    }
+
+    // Check if app exists in PM2
+    const checkResult = await conn.exec(`pm2 jlist`);
+    let appExists = false;
+
+    if (checkResult.code === 0) {
+      try {
+        const apps = JSON.parse(checkResult.stdout) as Array<{ name: string }>;
+        appExists = apps.some((a) => a.name === appName);
+      } catch {
+        appExists = false;
+      }
+    }
+
+    let command: string;
+
+    if (appExists) {
+      // Reload veya restart komutu
+      const action = reload ? "reload" : "restart";
+      const target = ecosystemFile || appName;
+      command = `pm2 ${action} ${target} --update-env`;
+    } else {
+      // App doesn't exist, start it
+      if (!remotePath) {
+        return {
+          success: false,
+          error: `App "${appName}" not found and no remotePath provided to start it`,
+        };
+      }
+
+      if (ecosystemFile) {
+        // Use ecosystem file to start
+        command = `cd /d "${winPath}" && pm2 start ${ecosystemFile} --only ${appName}`;
+      } else {
+        // Fallback to standalone server.js
+        command = `cd /d "${winPath}" && pm2 start .next\\standalone\\server.js --name ${appName}`;
+      }
+    }
 
     const result = await conn.exec(command);
 
     if (result.code !== 0) {
       return {
         success: false,
-        error: result.stderr || `PM2 ${action} failed with code ${result.code}`,
+        error: result.stderr || result.stdout || `PM2 command failed with code ${result.code}`,
       };
     }
 
+    // Save PM2 process list
+    await conn.exec("pm2 save");
+
     return {
       success: true,
-      status: `PM2 ${action} completed successfully`,
+      status: appExists
+        ? "PM2 reload completed"
+        : `PM2 app started${ecosystemFile ? " (using ecosystem.config.js)" : ""}`,
     };
   } catch (error) {
     return {

@@ -47,10 +47,13 @@ export const uploadConfigSchema = z.object({
 
 /**
  * PM2 ayarları
+ * ecosystem: true | "auto" = auto-detect ecosystem.config.js
+ *            false = don't use ecosystem file
+ *            "filename.js" = use specific ecosystem file
  */
 export const pm2ConfigSchema = z.object({
   appName: z.string().min(1, "PM2 app name is required"),
-  ecosystem: z.string().optional(),
+  ecosystem: z.union([z.boolean(), z.string()]).default(true),
   reload: z.boolean().default(true),
 });
 

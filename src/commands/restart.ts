@@ -9,11 +9,12 @@ export interface RestartResult {
 }
 
 /**
- * PM2 uygulamasını yeniden başlat
+ * PM2 uygulamasını yeniden başlat veya yoksa başlat
  */
 export async function runRestart(
   sshConfig: SSHConfig,
-  pm2Config: PM2Config
+  pm2Config: PM2Config,
+  remotePath?: string
 ): Promise<RestartResult> {
   const startTime = Date.now();
 
@@ -22,8 +23,8 @@ export async function runRestart(
   spinner.start();
 
   try {
-    // Reload/Restart
-    const result = await reloadApp(sshConfig, pm2Config);
+    // Reload/Restart or Start if not exists
+    const result = await reloadApp(sshConfig, pm2Config, remotePath);
 
     if (!result.success) {
       spinner.error({ text: `${action} failed: ${result.error}` });
