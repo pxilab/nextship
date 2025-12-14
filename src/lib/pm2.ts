@@ -27,8 +27,9 @@ function buildEnvPrefix(env: Record<string, string> | undefined, isWindows: bool
   const entries = Object.entries(env);
 
   if (isWindows) {
-    // Windows CMD format: set VAR1=value1 && set VAR2=value2 &&
-    return entries.map(([k, v]) => `set ${k}=${escapeShellValue(v)}`).join(" && ") + " && ";
+    // Windows CMD format: set "VAR1=value1" && set "VAR2=value2" &&
+    // IMPORTANT: Quotes around VAR=value prevent trailing space from being included
+    return entries.map(([k, v]) => `set "${k}=${v.replace(/"/g, '')}"`).join(" && ") + " && ";
   }
   // Linux/Unix format: VAR1=value1 VAR2=value2
   return entries.map(([k, v]) => `${k}=${escapeShellValue(v)}`).join(" ") + " ";
