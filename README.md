@@ -81,6 +81,7 @@ export default {
   build: {
     command: "bun run build",
     standalone: true,
+    prepareLocally: true, // public/ ve static/ dosyalarını local'de standalone içine kopyalar
   },
 
   upload: {
@@ -169,12 +170,18 @@ jobs:
 ```
 /var/www/myapp/
 ├── .next/
-│   ├── standalone/
-│   └── static/
-├── public/
-├── package.json
-└── ecosystem.config.js  # Optional
+│   └── standalone/
+│       ├── .next/
+│       │   └── static/     # Build sırasında kopyalanır
+│       ├── public/         # Build sırasında kopyalanır
+│       ├── package.json    # Next.js standalone build oluşturur
+│       └── server.js
+└── ecosystem.config.js     # Optional (ayrıca upload edilmeli)
 ```
+
+> **Not:** `prepareLocally: true` (default) kullanıldığında `public/` ve `.next/static/`
+> klasörleri build sırasında local'de `.next/standalone/` içine kopyalanır.
+> Sunucuya sadece `.next/standalone/` gönderilir. `package.json` zaten standalone içinde.
 
 ### PM2 Configuration
 

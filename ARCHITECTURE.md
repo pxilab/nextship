@@ -119,6 +119,7 @@ async function build(config: Config): Promise<void> {
   // 2. Run npm run build / yarn build / pnpm build / bun run build
   // 3. Verify .next folder was created
   // 4. Check standalone mode (recommended)
+  // 5. Local prepare: public/ ve .next/static/ → .next/standalone/ kopyala
 }
 ```
 
@@ -133,6 +134,12 @@ module.exports = {
 - No node_modules needed
 - Only required files
 
+**Local Prepare (prepareLocally: true, default)**
+- Build sonrası `public/` → `.next/standalone/public/` kopyalanır
+- Build sonrası `.next/static/` → `.next/standalone/.next/static/` kopyalanır
+- Sunucuya sadece `.next/standalone/` gönderilir
+- Sunucuda ayrı `public/` klasörü oluşmaz
+
 ### Step 2: Upload (rsync)
 ```typescript
 // commands/upload.ts
@@ -140,11 +147,16 @@ async function upload(config: Config): Promise<void> {
   // Transfer files with rsync
   // -avz --delete --exclude='.git' --exclude='node_modules'
 
+  // prepareLocally: true (default) kullanıldığında
   const filesToUpload = [
+    '.next/standalone/',  // public/, static/ ve package.json zaten içinde
+  ];
+
+  // prepareLocally: false kullanıldığında
+  const filesToUploadLegacy = [
     '.next/standalone/',
     '.next/static/',
     'public/',
-    'package.json',
   ];
 }
 ```
@@ -205,6 +217,7 @@ export default {
   build: {
     command: 'bun run build',        // or npm/yarn/pnpm
     standalone: true,                 // use standalone mode
+    prepareLocally: true,             // public/ ve static/ local'de kopyala (default)
   },
 
   // Upload
@@ -416,6 +429,21 @@ bunx @pxilab/nextship ship
 ## Server-Side Setup
 
 ### Recommended Directory Structure
+
+**prepareLocally: true (default) - Önerilen**
+```
+/var/www/myapp/
+├── .next/
+│   └── standalone/
+│       ├── .next/
+│       │   └── static/     # Local'de kopyalandı
+│       ├── public/         # Local'de kopyalandı
+│       ├── package.json    # Next.js standalone build oluşturuyor
+│       └── server.js
+└── ecosystem.config.js     # Opsiyonel, ayrıca upload edilmeli
+```
+
+**prepareLocally: false - Eski davranış**
 ```
 /var/www/myapp/
 ├── .next/

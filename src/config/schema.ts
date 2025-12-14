@@ -22,10 +22,19 @@ export const buildConfigSchema = z.object({
   command: z.string().default("npm run build"),
   standalone: z.boolean().default(true),
   skipBuild: z.boolean().default(false),
+  /**
+   * Local'de build sonrası public/ ve .next/static/ klasörlerini
+   * .next/standalone/ içine kopyalar. Bu sayede sunucuya tek klasör gönderilir
+   * ve sunucuda ayrı public/ klasörü oluşmaz.
+   * @default true
+   */
+  prepareLocally: z.boolean().default(true),
 });
 
 /**
  * Upload settings
+ * Not: prepareLocally: true (default) kullanıldığında public/ ve .next/static/
+ * zaten .next/standalone/ içine kopyalanır, ayrıca upload etmeye gerek yok.
  */
 export const uploadConfigSchema = z.object({
   remotePath: z.string().min(1, "Remote path is required"),
@@ -37,9 +46,6 @@ export const uploadConfigSchema = z.object({
   ]),
   include: z.array(z.string()).default([
     ".next/standalone/",
-    ".next/static/",
-    "public/",
-    "package.json",
   ]),
   useRsync: z.boolean().default(true),
   rsyncOptions: z.array(z.string()).default(["-avz", "--delete"]),

@@ -93,7 +93,8 @@ export async function runShip(
     }
 
     // Step 3: Prepare standalone folder (copy static + public)
-    if (config.build.standalone) {
+    // prepareLocally true ise bu adım local'de yapıldı, sunucuda tekrar yapmaya gerek yok
+    if (config.build.standalone && !config.build.prepareLocally) {
       const prepareResult = await runPrepare(config.ssh, config.upload);
       result.steps.prepare = {
         success: prepareResult.success,

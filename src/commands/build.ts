@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import { existsSync } from "node:fs";
+import { existsSync, cpSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { BuildConfig } from "../config/schema.js";
 import { logger } from "../utils/logger.js";
@@ -8,6 +8,55 @@ export interface BuildResult {
   success: boolean;
   duration: number;
   error?: string;
+}
+
+/**
+ * Build Next.js project
+ */
+interface LocalPrepareResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Local'de public/ ve .next/static/ klasörlerini .next/standalone/ içine kopyalar
+ * Bu sayede sunucuya tek klasör gönderilir
+ */
+async function runLocalPrepare(cwd: string): Promise<LocalPrepareResult> {
+  const spinner = logger.spinner("Preparing standalone folder locally...");
+  spinner.start();
+
+  try {
+    const standalonePath = join(cwd, ".next", "standalone");
+    const publicSrc = join(cwd, "public");
+    const publicDest = join(standalonePath, "public");
+    const staticSrc = join(cwd, ".next", "static");
+    const staticDest = join(standalonePath, ".next", "static");
+
+    // public/ klasörünü kopyala (varsa)
+    if (existsSync(publicSrc)) {
+      // Önce hedef varsa sil (temiz kopyalama için)
+      if (existsSync(publicDest)) {
+        rmSync(publicDest, { recursive: true, force: true });
+      }
+      cpSync(publicSrc, publicDest, { recursive: true });
+    }
+
+    // .next/static/ klasörünü kopyala (varsa)
+    if (existsSync(staticSrc)) {
+      if (existsSync(staticDest)) {
+        rmSync(staticDest, { recursive: true, force: true });
+      }
+      cpSync(staticSrc, staticDest, { recursive: true });
+    }
+
+    spinner.success({ text: "Standalone folder prepared locally (static + public copied)" });
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    spinner.error({ text: `Local prepare failed: ${message}` });
+    return { success: false, error: message };
+  }
 }
 
 /**
@@ -75,6 +124,18 @@ export async function runBuild(
     }
 
     spinner.success({ text: "Build completed successfully" });
+
+    // Local prepare: public/ ve .next/static/ → .next/standalone/ içine kopyala
+    if (config.standalone && config.prepareLocally) {
+      const localPrepareResult = await runLocalPrepare(cwd);
+      if (!localPrepareResult.success) {
+        return {
+          success: false,
+          duration: Date.now() - startTime,
+          error: localPrepareResult.error,
+        };
+      }
+    }
 
     return {
       success: true,
