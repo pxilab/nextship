@@ -62,6 +62,11 @@ export const pm2ConfigSchema = z.object({
   ecosystem: z.union([z.boolean(), z.string()]).default(true),
   reload: z.boolean().default(true),
   port: z.number().int().positive().optional(),
+  /**
+   * Environment variables to inject when PM2 starts or reloads
+   * These are passed to the PM2 process via shell environment
+   */
+  env: z.record(z.string(), z.string()).optional(),
 });
 
 /**

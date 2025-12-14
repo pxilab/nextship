@@ -195,6 +195,27 @@ PXI NextShip supports three modes for PM2:
 
 When `ecosystem: false`, you can specify a custom port with the `port` option.
 
+### PM2 Environment Variables
+
+Inject environment variables when PM2 starts or reloads:
+
+```js
+pm2: {
+  appName: "myapp",
+  ecosystem: false,  // Standalone mode
+  port: 3000,
+  env: {
+    NODE_ENV: "production",
+    API_BASE_URL: process.env.API_BASE_URL,
+    DATABASE_URL: process.env.DATABASE_URL,
+  },
+}
+```
+
+Environment variables are passed to PM2 via shell environment and persist after `pm2 save`.
+
+**Note:** When using `ecosystem: true`, define environment variables in your `ecosystem.config.js` file instead for better management.
+
 ### PM2 Ecosystem File (Optional)
 
 ```js

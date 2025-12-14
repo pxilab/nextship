@@ -1,5 +1,5 @@
 /**
- * PXI NextShip Configuration (v0.2.0)
+ * PXI NextShip Configuration (v0.3.0)
  *
  * Copy this file to pxnship.config.js and update with your settings.
  * Environment variables can override these values.
@@ -49,5 +49,12 @@ export default {
     ecosystem: true,  // true = auto-detect, false = don't use, "filename.js" = specific
     reload: true,     // Use reload instead of restart (zero-downtime)
     // port: 3000,    // Used when ecosystem is false
+
+    // Environment variables injected when PM2 starts/reloads
+    // env: {
+    //   NODE_ENV: "production",
+    //   API_BASE_URL: process.env.API_BASE_URL,
+    //   DATABASE_URL: process.env.DATABASE_URL,
+    // },
   },
 };

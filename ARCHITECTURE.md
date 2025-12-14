@@ -235,6 +235,10 @@ export default {
     appName: 'myapp',
     ecosystem: true,  // true = auto-detect, false = don't use, "filename.js" = specific
     port: 3000,       // used when ecosystem is false
+    env: {            // Environment variables injected to PM2 process
+      NODE_ENV: 'production',
+      API_BASE_URL: process.env.API_BASE_URL,
+    },
   },
 };
 ```

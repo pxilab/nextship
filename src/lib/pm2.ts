@@ -1,6 +1,39 @@
 import { createSSHConnection, type SSHConnection } from "./ssh.js";
 import type { SSHConfig, PM2Config } from "../config/schema.js";
 
+/**
+ * Escape shell value for safe command execution
+ * Handles quotes, spaces, and special characters
+ */
+function escapeShellValue(value: string): string {
+  if (/[\s&|<>^"'`$\\]/.test(value)) {
+    // Escape double quotes and wrap in quotes
+    return `"${value.replace(/"/g, '\\"')}"`;
+  }
+  return value;
+}
+
+/**
+ * Build environment variable prefix for shell commands
+ * @param env Record of environment variables
+ * @param isWindows Whether target is Windows (uses set command)
+ * @returns Prefix string like "set VAR=val && " (Windows) or "VAR=val " (Linux)
+ */
+function buildEnvPrefix(env: Record<string, string> | undefined, isWindows: boolean): string {
+  if (!env || Object.keys(env).length === 0) {
+    return "";
+  }
+
+  const entries = Object.entries(env);
+
+  if (isWindows) {
+    // Windows CMD format: set VAR1=value1 && set VAR2=value2 &&
+    return entries.map(([k, v]) => `set ${k}=${escapeShellValue(v)}`).join(" && ") + " && ";
+  }
+  // Linux/Unix format: VAR1=value1 VAR2=value2
+  return entries.map(([k, v]) => `${k}=${escapeShellValue(v)}`).join(" ") + " ";
+}
+
 export interface PM2Result {
   success: boolean;
   status?: string;
@@ -19,16 +52,20 @@ export async function reloadApp(
   pm2Config: PM2Config,
   remotePath?: string
 ): Promise<PM2Result> {
-  const { appName, ecosystem, reload, port } = pm2Config;
+  const { appName, ecosystem, reload, port, env } = pm2Config;
   let conn: SSHConnection | null = null;
 
   try {
     conn = await createSSHConnection(sshConfig);
 
-    // Convert WSL path to Windows path
+    // Convert WSL path to Windows path and detect Windows target
+    const isWindows = remotePath?.startsWith("/mnt/") ?? false;
     const winPath = remotePath
       ? remotePath.replace(/^\/mnt\/([a-z])\//, "$1:\\\\").replace(/\//g, "\\")
       : "";
+
+    // Build environment variable prefix
+    const envPrefix = buildEnvPrefix(env, isWindows);
 
     // Determine ecosystem file based on config
     let ecosystemFile: string | null = null;
@@ -63,9 +100,9 @@ export async function reloadApp(
     let command: string;
 
     if (appExists) {
-      // Reload or restart command - always use appName since app is already configured
+      // Reload or restart command - prepend env vars if provided
       const action = reload ? "reload" : "restart";
-      command = `pm2 ${action} ${appName} --update-env`;
+      command = `${envPrefix}pm2 ${action} ${appName} --update-env`;
     } else {
       // App doesn't exist, start it
       if (!remotePath) {
@@ -76,12 +113,13 @@ export async function reloadApp(
       }
 
       if (ecosystemFile) {
-        // Use ecosystem file to start
-        command = `cd /d "${winPath}" && pm2 start ${ecosystemFile} --only ${appName}`;
+        // Use ecosystem file to start - env vars prepended
+        command = `cd /d "${winPath}" && ${envPrefix}pm2 start ${ecosystemFile} --only ${appName}`;
       } else {
-        // Fallback to standalone server.js with optional port
-        const portEnv = port ? ` --env PORT=${port}` : "";
-        command = `cd /d "${winPath}" && pm2 start .next\\standalone\\server.js --name ${appName}${portEnv}`;
+        // Standalone mode: merge PORT into env if provided
+        const envWithPort = port ? { PORT: String(port), ...env } : env;
+        const standaloneEnvPrefix = buildEnvPrefix(envWithPort, isWindows);
+        command = `cd /d "${winPath}" && ${standaloneEnvPrefix}pm2 start .next\\standalone\\server.js --name ${appName}`;
       }
     }
 
@@ -207,21 +245,25 @@ export async function startApp(
   pm2Config: PM2Config,
   cwd: string
 ): Promise<PM2Result> {
-  const { appName, ecosystem, port } = pm2Config;
+  const { appName, ecosystem, port, env } = pm2Config;
   let conn: SSHConnection | null = null;
 
   try {
     conn = await createSSHConnection(sshConfig);
 
+    // Build environment variable prefix (Linux format for startApp)
+    const envPrefix = buildEnvPrefix(env, false);
+
     let command: string;
 
     if (ecosystem) {
-      // Start with ecosystem file
-      command = `cd ${cwd} && pm2 start ${ecosystem}`;
+      // Start with ecosystem file - env vars prepended
+      command = `cd ${cwd} && ${envPrefix}pm2 start ${ecosystem}`;
     } else {
-      // Start with standalone server with optional port
-      const portEnv = port ? ` --env PORT=${port}` : "";
-      command = `cd ${cwd} && pm2 start .next/standalone/server.js --name ${appName}${portEnv}`;
+      // Standalone mode: merge PORT into env if provided
+      const envWithPort = port ? { PORT: String(port), ...env } : env;
+      const standaloneEnvPrefix = buildEnvPrefix(envWithPort, false);
+      command = `cd ${cwd} && ${standaloneEnvPrefix}pm2 start .next/standalone/server.js --name ${appName}`;
     }
 
     const result = await conn.exec(command);

@@ -49,6 +49,8 @@ export async function runShip(
     console.log(`    Remote Path:  ${config.upload.remotePath}`);
     console.log(`    PM2 App:      ${config.pm2.appName}`);
     console.log(`    PM2 Port:     ${config.pm2.port || "default (3000)"}`);
+    const envCount = config.pm2.env ? Object.keys(config.pm2.env).length : 0;
+    console.log(`    PM2 Env:      ${envCount > 0 ? `${envCount} variable(s)` : "none"}`);
     console.log(`    Build Cmd:    ${config.build.command}`);
     console.log(`    Skip Build:   ${options.skipBuild || config.build.skipBuild}`);
     console.log();
