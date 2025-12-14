@@ -1,5 +1,5 @@
 /**
- * PXI NextShip Configuration
+ * PXI NextShip Configuration (v0.2.0)
  *
  * Copy this file to pxnship.config.js and update with your settings.
  * Environment variables can override these values.
@@ -22,6 +22,7 @@ export default {
     command: "bun run build",  // or: npm run build, yarn build, pnpm build
     standalone: true,          // Requires output: 'standalone' in next.config.js
     skipBuild: false,          // Set to true to skip build step
+    prepareLocally: true,      // Copy public/ and static/ into standalone locally (recommended)
   },
 
   // Upload Settings
@@ -33,11 +34,11 @@ export default {
       ".env.local",
       ".env*.local",
     ],
+    // prepareLocally: true (default) - only .next/standalone/ needed
     include: [
       ".next/standalone/",
-      ".next/static/",
-      "public/",
-      "package.json",
+      // "ecosystem.config.js",  // Add if using PM2 ecosystem file
+      // "web.config",           // Add for IIS deployments
     ],
     useRsync: true,  // Falls back to SFTP if rsync not available
   },
@@ -45,7 +46,8 @@ export default {
   // PM2 Settings
   pm2: {
     appName: "myapp",
-    // ecosystem: "ecosystem.config.js",  // Optional: use ecosystem file
-    reload: true,  // Use reload instead of restart (zero-downtime)
+    ecosystem: true,  // true = auto-detect, false = don't use, "filename.js" = specific
+    reload: true,     // Use reload instead of restart (zero-downtime)
+    // port: 3000,    // Used when ecosystem is false
   },
 };
