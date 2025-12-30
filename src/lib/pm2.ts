@@ -101,9 +101,16 @@ export async function reloadApp(
     let command: string;
 
     if (appExists) {
-      // Reload or restart command - prepend env vars if provided
-      const action = reload ? "reload" : "restart";
-      command = `${envPrefix}pm2 ${action} ${appName} --update-env`;
+      if (ecosystemFile && remotePath) {
+        // Ecosystem dosyası varsa, startOrRestart ile tüm config'i yeniden oku
+        // Bu sayede PORT, env değişkenleri vb. güncellemeler uygulanır
+        const action = reload ? "reload" : "restart";
+        command = `cd /d "${winPath}" && ${envPrefix}pm2 ${action} ${ecosystemFile} --update-env`;
+      } else {
+        // Ecosystem yoksa sadece app'i reload/restart et
+        const action = reload ? "reload" : "restart";
+        command = `${envPrefix}pm2 ${action} ${appName} --update-env`;
+      }
     } else {
       // App doesn't exist, start it
       if (!remotePath) {
