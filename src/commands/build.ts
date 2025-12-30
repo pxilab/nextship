@@ -64,7 +64,8 @@ async function runLocalPrepare(cwd: string): Promise<LocalPrepareResult> {
  */
 export async function runBuild(
   config: BuildConfig,
-  cwd: string = process.cwd()
+  cwd: string = process.cwd(),
+  env?: Record<string, string>
 ): Promise<BuildResult> {
   const startTime = Date.now();
 
@@ -99,6 +100,7 @@ export async function runBuild(
       env: {
         ...process.env,
         NODE_ENV: "production",
+        ...env,  // Build-time env vars (NEXT_PUBLIC_* için)
       },
     });
 

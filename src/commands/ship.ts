@@ -68,7 +68,8 @@ export async function runShip(
       skipBuild: options.skipBuild || config.build.skipBuild,
     };
 
-    const buildResult = await runBuild(buildConfig, cwd);
+    // pm2.env değerlerini build sırasında da kullan (NEXT_PUBLIC_* için)
+    const buildResult = await runBuild(buildConfig, cwd, config.pm2.env);
     result.steps.build = {
       success: buildResult.success,
       duration: buildResult.duration,
