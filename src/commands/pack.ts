@@ -1,7 +1,8 @@
 import { createWriteStream, statSync } from "node:fs";
 import { relative, join } from "node:path";
 import archiver from "archiver";
-import type { UploadConfig } from "../config/schema.js";
+import type { Config } from "../config/schema.js";
+import { runBuild } from "./build.js";
 import { collectFiles } from "../lib/rsync.js";
 import { logger } from "../utils/logger.js";
 
@@ -23,21 +24,37 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+export interface PackOptions {
+  skipBuild?: boolean;
+  outputPath?: string;
+}
+
 /**
- * Dosyaları zipleyip local'e kaydet
+ * Build edip dosyaları zipleyip local'e kaydet
  */
 export async function runPack(
-  uploadConfig: UploadConfig,
+  config: Config,
   cwd: string = process.cwd(),
-  outputPath?: string
+  options: PackOptions = {}
 ): Promise<PackResult> {
-  const { exclude, include } = uploadConfig;
-  const outFile = outputPath ?? join(cwd, "nextship-pack.zip");
-
-  const spinner = logger.spinner("Collecting files...");
-  spinner.start();
+  const { exclude, include } = config.upload;
+  const outFile = options.outputPath ?? join(cwd, "nextship-pack.zip");
 
   try {
+    // Step 1: Build
+    if (!options.skipBuild) {
+      const buildConfig = { ...config.build };
+      const buildResult = await runBuild(buildConfig, cwd, config.pm2.env);
+
+      if (!buildResult.success) {
+        return { success: false, outputPath: outFile, fileCount: 0, size: 0, error: buildResult.error };
+      }
+    }
+
+    // Step 2: Pack
+    const spinner = logger.spinner("Collecting files...");
+    spinner.start();
+
     const files = collectFiles(include, exclude, cwd);
 
     if (files.length === 0) {
@@ -74,7 +91,6 @@ export async function runPack(
     return { success: true, outputPath: outFile, fileCount: files.length, size };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    spinner.error({ text: `Pack failed: ${message}` });
     return { success: false, outputPath: outFile, fileCount: 0, size: 0, error: message };
   }
 }

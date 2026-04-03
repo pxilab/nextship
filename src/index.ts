@@ -17,7 +17,7 @@ export { runUpload, type UploadCommandResult } from "./commands/upload.js";
 export { runPrepare, type PrepareResult } from "./commands/prepare.js";
 export { runRestart, type RestartResult } from "./commands/restart.js";
 export { runShip, type ShipResult, type ShipOptions } from "./commands/ship.js";
-export { runPack, type PackResult } from "./commands/pack.js";
+export { runPack, type PackResult, type PackOptions } from "./commands/pack.js";
 
 export { createSSHConnection, testConnection, execRemoteCommand } from "./lib/ssh.js";
 export { upload, uploadWithRsync, uploadWithSFTP, collectFiles, isRsyncAvailable, isSshpassAvailable } from "./lib/rsync.js";

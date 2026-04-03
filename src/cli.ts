@@ -123,7 +123,7 @@ const restartCommand = defineCommand({
 const packCommand = defineCommand({
   meta: {
     name: "pack",
-    description: "Pack upload files into a zip archive without deploying",
+    description: "Build and pack upload files into a zip archive without deploying",
   },
   args: {
     config: {
@@ -135,6 +135,11 @@ const packCommand = defineCommand({
       type: "string",
       alias: "o",
       description: "Output zip file path",
+    },
+    "skip-build": {
+      type: "boolean",
+      description: "Skip the build step",
+      default: false,
     },
     verbose: {
       type: "boolean",
@@ -149,7 +154,10 @@ const packCommand = defineCommand({
 
     try {
       const config = await loadConfig({ configPath: args.config });
-      const result = await runPack(config.upload, process.cwd(), args.output);
+      const result = await runPack(config, process.cwd(), {
+        skipBuild: args["skip-build"],
+        outputPath: args.output,
+      });
 
       if (!result.success) {
         process.exit(1);
