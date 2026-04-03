@@ -198,9 +198,11 @@ function walkDirectory(
 
     if (shouldExclude) continue;
 
-    if (entry.isDirectory()) {
+    // statSync ile gerçek tipi kontrol et (symlink'ler için gerekli)
+    const entryStat = statSync(fullPath);
+    if (entryStat.isDirectory()) {
       files.push(...walkDirectory(fullPath, baseDir, exclude));
-    } else {
+    } else if (entryStat.isFile()) {
       files.push(fullPath);
     }
   }
@@ -398,10 +400,22 @@ export async function upload(
       onProgress?.("Using rsync with sshpass for file transfer");
       return uploadWithRsync(sshConfig, uploadConfig, cwd, onProgress);
     }
+
+    // sshpass yüklü değil, kullanıcıyı uyar
+    const installCmd = process.platform === "darwin"
+      ? "brew install sshpass"
+      : process.platform === "linux"
+        ? "sudo apt-get install sshpass"
+        : null;
+
+    onProgress?.(`⚠ sshpass not found. SFTP fallback will be used (slower).`);
+    if (installCmd) {
+      onProgress?.(`  Install sshpass for faster rsync transfers: ${installCmd}`);
+    }
   }
 
   // SFTP fallback
-  onProgress?.("Using SFTP for file transfer (rsync not available)");
+  onProgress?.("Using SFTP for file transfer");
   return uploadWithSFTP(sshConfig, uploadConfig, cwd, (progress) => {
     onProgress?.(`Uploading ${progress.file} (${progress.percentage}%)`);
   });
