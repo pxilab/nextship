@@ -211,6 +211,32 @@ function walkDirectory(
 }
 
 /**
+ * include/exclude pattern'lerine göre yüklenecek dosyaları topla
+ */
+export function collectFiles(
+  include: string[],
+  exclude: string[],
+  cwd: string = process.cwd()
+): string[] {
+  const files: string[] = [];
+
+  for (const pattern of include) {
+    const sourcePath = join(cwd, pattern);
+    if (!existsSync(sourcePath)) continue;
+
+    const stat = statSync(sourcePath);
+
+    if (stat.isDirectory()) {
+      files.push(...walkDirectory(sourcePath, cwd, exclude));
+    } else if (stat.isFile()) {
+      files.push(sourcePath);
+    }
+  }
+
+  return files;
+}
+
+/**
  * SFTP ile dosyaları yükle (Windows fallback)
  */
 export async function uploadWithSFTP(
@@ -227,30 +253,11 @@ export async function uploadWithSFTP(
     let currentFileIndex = 0;
 
     // Find files to upload
-    const filesToUpload: { local: string; remote: string }[] = [];
-
-    for (const pattern of include) {
-      const sourcePath = join(cwd, pattern);
-      if (!existsSync(sourcePath)) continue;
-
-      const stat = statSync(sourcePath);
-
-      if (stat.isDirectory()) {
-        const files = walkDirectory(sourcePath, cwd, exclude);
-        for (const file of files) {
-          const relativePath = relative(cwd, file);
-          filesToUpload.push({
-            local: file,
-            remote: join(remotePath, relativePath),
-          });
-        }
-      } else {
-        filesToUpload.push({
-          local: sourcePath,
-          remote: join(remotePath, pattern),
-        });
-      }
-    }
+    const collectedFiles = collectFiles(include, exclude, cwd);
+    const filesToUpload = collectedFiles.map((file) => ({
+      local: file,
+      remote: join(remotePath, relative(cwd, file)),
+    }));
 
     if (filesToUpload.length === 0) {
       resolve({

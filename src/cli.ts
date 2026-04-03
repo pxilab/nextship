@@ -5,6 +5,7 @@ import { runBuild } from "./commands/build.js";
 import { runUpload } from "./commands/upload.js";
 import { runRestart } from "./commands/restart.js";
 import { runShip } from "./commands/ship.js";
+import { runPack } from "./commands/pack.js";
 import { showBanner, showError, setVerbose } from "./utils/logger.js";
 
 // Read version from package.json
@@ -119,6 +120,47 @@ const restartCommand = defineCommand({
   },
 });
 
+const packCommand = defineCommand({
+  meta: {
+    name: "pack",
+    description: "Pack upload files into a zip archive without deploying",
+  },
+  args: {
+    config: {
+      type: "string",
+      alias: "c",
+      description: "Path to config file",
+    },
+    output: {
+      type: "string",
+      alias: "o",
+      description: "Output zip file path",
+    },
+    verbose: {
+      type: "boolean",
+      alias: "v",
+      description: "Enable verbose output",
+      default: false,
+    },
+  },
+  async run({ args }) {
+    setVerbose(args.verbose);
+    showBanner();
+
+    try {
+      const config = await loadConfig({ configPath: args.config });
+      const result = await runPack(config.upload, process.cwd(), args.output);
+
+      if (!result.success) {
+        process.exit(1);
+      }
+    } catch (error) {
+      showError(error instanceof Error ? error : new Error(String(error)), args.verbose);
+      process.exit(1);
+    }
+  },
+});
+
 const shipCommand = defineCommand({
   meta: {
     name: "ship",
@@ -179,6 +221,7 @@ const main = defineCommand({
     build: buildCommand,
     upload: uploadCommand,
     restart: restartCommand,
+    pack: packCommand,
     ship: shipCommand,
   },
 });
